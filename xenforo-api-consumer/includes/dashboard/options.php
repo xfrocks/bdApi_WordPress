@@ -163,7 +163,7 @@ function xfac_dashboardOptions_admin_init()
         switch ($_REQUEST['cron']) {
             case 'hourly':
                 do_action('xfac_cron_hourly');
-                wp_redirect(admin_url('options-general.php?page=xfac&ran=hourly'));
+                wp_redirect(admin_url('options-general.php?page=xfac&tab=post_comment&ran=hourly'));
                 exit;
         }
     } elseif (!empty($_REQUEST['do'])) {

@@ -134,6 +134,8 @@ if (intval(get_option('xfac_sync_post_wp_xf')) > 0) {
 
 function xfac_syncPost_cron()
 {
+    xfac_log(__FUNCTION__);
+
     $config = xfac_option_getConfig();
     if (empty($config)) {
         return;
@@ -145,22 +147,38 @@ function xfac_syncPost_cron()
     }
 
     $forumFollowedSyncRecords = xfac_sync_getRecordsByProviderTypeAndSyncId('', 'forums/followed', 0);
-    if (empty($forumFollowedSyncRecords) OR (time() - $forumFollowedSyncRecords[0]->sync_date > 86400)) {
+    if (empty($forumFollowedSyncRecords)
+        || (time() - $forumFollowedSyncRecords[0]->sync_date > 86400)
+    ) {
         xfac_update_option_tag_forum_mappings('xfac_tag_forum_mappings', null, get_option('xfac_tag_forum_mappings'));
     }
 
     $forumIds = array_keys($mappedTags);
 
-    // sync sticky threads first
-    $stickyThreads = xfac_api_getThreadsInForums($config, $forumIds, '', 'sticky=1');
-    if (!empty($stickyThreads['threads'])) {
-        xfac_syncPost_processThreads($config, $stickyThreads['threads'], $mappedTags);
-    }
+    $page = 1;
+    $pagesWithoutPull = 0;
+    while(true) {
+        $xfThreads = xfac_api_getThreadsInForums($config, $forumIds, sprintf('page=%d', $page));
+        if (empty($xfThreads['threads'])) {
+            break;
+        }
 
-    // now start syncing normal threads
-    $threads = xfac_api_getThreadsInForums($config, $forumIds, '', 'sticky=0');
-    if (!empty($threads['threads'])) {
-        xfac_syncPost_processThreads($config, $threads['threads'], $mappedTags);
+        $pulledSomething = xfac_syncPost_processThreads($config, $xfThreads['threads'], $mappedTags);
+        if (!$pulledSomething) {
+            $pagesWithoutPull++;
+        }
+        if ($pagesWithoutPull > 2) {
+            // stop looking for threads if more than 2 pages of no pulls
+            break;
+        }
+        if (empty($xfThreads['links']['pages'])
+            || $xfThreads['links']['pages'] <= $page) {
+            // stop requesting next page as... there isn't one
+            break;
+        }
+
+        // process next page of threads
+        $page++;
     }
 }
 
@@ -275,6 +293,8 @@ function xfac_syncPost_getMappedTags($forumId = 0)
 
 function xfac_syncPost_processThreads($config, array $threads, array $mappedTags)
 {
+    $pulledSomething = false;
+
     $threadIds = array();
     foreach ($threads as $thread) {
         $threadIds[] = $thread['thread_id'];
@@ -296,11 +316,15 @@ function xfac_syncPost_processThreads($config, array $threads, array $mappedTags
                 $tagNames = $mappedTags[$thread['forum_id']];
             }
 
-            if (!empty($tagNames)) {
-                xfac_syncPost_pullPost($config, $thread, $tagNames);
+            if (!empty($tagNames)
+                && xfac_syncPost_pullPost($config, $thread, $tagNames) > 0
+            ) {
+                $pulledSomething = true;
             }
         }
     }
+
+    return $pulledSomething;
 }
 
 function xfac_syncPost_pullPost($config, $thread, $tags, $direction = 'pull')

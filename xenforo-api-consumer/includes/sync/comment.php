@@ -132,6 +132,8 @@ function xfac_syncComment_pushComment($wpComment, $postSyncRecord, $commentSyncR
 
 function xfac_syncComment_cron()
 {
+    xfac_log(__FUNCTION__);
+
     $config = xfac_option_getConfig();
     if (empty($config)) {
         return;
@@ -150,74 +152,113 @@ if (intval(get_option('xfac_sync_comment_xf_wp')) > 0) {
 
 function xfac_syncComment_processPostSyncRecord($config, $postSyncRecord)
 {
-    $page = 1;
     $pulledSomething = false;
 
     if (time() - $postSyncRecord->sync_date < 60) {
-        // do not try to sync every minute...
-        return false;
+        return $pulledSomething;
     }
 
     if (!empty($postSyncRecord->syncData['subscribed'])) {
         if (time() - $postSyncRecord->sync_date < 86400) {
-            // do not try to sync every day with subscribed thread
-            return false;
+            return $pulledSomething;
         }
     }
 
     $wpUserData = xfac_user_getUserDataByApiData($config['root'], $postSyncRecord->syncData['thread']['creator_user_id']);
     $accessToken = xfac_user_getAccessToken($wpUserData->ID);
 
-    $xfPosts = xfac_api_getPostsInThread($config, $postSyncRecord->provider_content_id, $accessToken);
+    $page = 1;
+    $pagesWithoutPull = 0;
+    while(true) {
+        $xfPosts = xfac_api_getPostsInThread($config,
+            $postSyncRecord->provider_content_id, $accessToken, sprintf('page=%d', $page));
 
-    if (empty($xfPosts['subscription_callback']) AND !empty($xfPosts['_headerLinkHub'])) {
-        if (xfac_api_postSubscription($config, $accessToken, $xfPosts['_headerLinkHub'])) {
-            $postSyncRecord->syncData['subscribed'] = array(
-                'hub' => $xfPosts['_headerLinkHub'],
-                'time' => time(),
-            );
-            xfac_sync_updateRecord('', $postSyncRecord->provider_content_type, $postSyncRecord->provider_content_id, $postSyncRecord->sync_id, 0, $postSyncRecord->syncData);
-            xfac_log('xfac_syncComment_processPostSyncRecord subscribed for posts in thread (#%d)', $postSyncRecord->provider_content_id);
-        } else {
-            xfac_log('xfac_syncComment_processPostSyncRecord failed subscribing for posts in thread (#%d)', $postSyncRecord->provider_content_id);
+        if (empty($xfPosts['subscription_callback'])
+            && !empty($xfPosts['_headerLinkHub'])
+        ) {
+            if (xfac_api_postSubscription($config, $accessToken, $xfPosts['_headerLinkHub'])) {
+                $postSyncRecord->syncData['subscribed'] = array(
+                    'hub' => $xfPosts['_headerLinkHub'],
+                    'time' => time(),
+                );
+                xfac_sync_updateRecord(
+                    '',
+                    $postSyncRecord->provider_content_type,
+                    $postSyncRecord->provider_content_id,
+                    $postSyncRecord->sync_id,
+                    0,
+                    $postSyncRecord->syncData
+                );
+                xfac_log('xfac_syncComment_processPostSyncRecord subscribed for posts in thread (#%d)',
+                    $postSyncRecord->provider_content_id);
+            } else {
+                xfac_log('xfac_syncComment_processPostSyncRecord failed subscribing for posts in thread (#%d)',
+                    $postSyncRecord->provider_content_id);
+            }
         }
+
+        if (empty($xfPosts['posts'])) {
+            break;
+        }
+
+        $pulledSomethingFromPage = xfac_syncComment_processPosts($config, $xfPosts['posts'], $postSyncRecord->sync_id);
+        if ($pulledSomethingFromPage) {
+            $pulledSomething = true;
+        }
+
+        if (!$pulledSomethingFromPage) {
+            $pagesWithoutPull++;
+        }
+        if ($pagesWithoutPull > 2) {
+            // stop looking for posts if more than 2 pages of no pulls
+            break;
+        }
+        if (empty($xfPosts['links']['pages'])
+            || $xfPosts['links']['pages'] <= $page) {
+            // stop requesting next page as... there isn't one
+            break;
+        }
+
+        // process next page of posts
+        $page++;
     }
 
-    if (empty($xfPosts['posts'])) {
-        return false;
+    if ($pulledSomething) {
+        xfac_sync_updateRecordDate($postSyncRecord);
     }
 
-    $xfPostIds = array();
-    foreach ($xfPosts['posts'] as $xfPost) {
-        $xfPostIds[] = $xfPost['post_id'];
-    }
-    $commentSyncRecords = xfac_sync_getRecordsByProviderTypeAndIds('', 'post', $xfPostIds);
+    return $pulledSomething;
+}
 
-    foreach ($xfPosts['posts'] as $xfPost) {
-        if (!empty($xfPost['post_is_first_post'])) {
+function xfac_syncComment_processPosts($config, array $posts, $wpPostId)
+{
+    $pulledSomething = false;
+
+    $postIds = array();
+    foreach ($posts as $post) {
+        $postIds[] = $post['post_id'];
+    }
+    $syncRecords = xfac_sync_getRecordsByProviderTypeAndIds('', 'post', $postIds);
+
+    foreach ($posts as $post) {
+        if (!empty($post['post_is_first_post'])) {
             // do not pull first post
             continue;
         }
 
         $synced = false;
 
-        foreach ($commentSyncRecords as $commentSyncRecord) {
-            if ($commentSyncRecord->provider_content_id == $xfPost['post_id']) {
+        foreach ($syncRecords as $syncRecord) {
+            if ($syncRecord->provider_content_id == $post['post_id']) {
                 $synced = true;
             }
         }
 
-        if (!$synced) {
-            $commentId = xfac_syncComment_pullComment($config, $xfPost, $postSyncRecord->sync_id);
-
-            if ($commentId > 0) {
-                $pulledSomething = true;
-            }
+        if (!$synced
+            && xfac_syncComment_pullComment($config, $post, $wpPostId) > 0
+        ) {
+            $pulledSomething = true;
         }
-    }
-
-    if ($pulledSomething) {
-        xfac_sync_updateRecordDate($postSyncRecord);
     }
 
     return $pulledSomething;

@@ -278,17 +278,13 @@ function xfac_api_getForums($config, $accessToken = '', $extraParams = '')
     }
 }
 
-function xfac_api_getThreadsInForums($config, $forumIds, $accessToken = '', $extraParams = '')
+function xfac_api_getThreadsInForums($config, $forumIds, $extraParams = '')
 {
-    if ($accessToken === '') {
-        $accessToken = xfac_user_getSystemAccessToken($config, true);
-    }
-
     $curl = _xfac_api_curl(call_user_func_array('sprintf', array(
         '%s/index.php?threads/&forum_id=%s&order=thread_create_date_reverse&oauth_token=%s%s',
         rtrim($config['root'], '/'),
         is_array($forumIds) ? implode(',', $forumIds) : $forumIds,
-        rawurlencode($accessToken),
+        rawurlencode(xfac_user_getSystemAccessToken($config, true)),
         !empty($extraParams) ? '&' . $extraParams : ''
     )));
     extract($curl);
@@ -300,17 +296,14 @@ function xfac_api_getThreadsInForums($config, $forumIds, $accessToken = '', $ext
     }
 }
 
-function xfac_api_getPostsInThread($config, $threadId, $accessToken = '')
+function xfac_api_getPostsInThread($config, $threadId, $accessToken, $extraParams = '')
 {
-    if ($accessToken === '') {
-        $accessToken = xfac_user_getSystemAccessToken($config, true);
-    }
-
     $curl = _xfac_api_curl(call_user_func_array('sprintf', array(
-        '%s/index.php?posts/&thread_id=%d&order=natural_reverse&oauth_token=%s',
+        '%s/index.php?posts/&thread_id=%d&order=natural_reverse&oauth_token=%s%s',
         rtrim($config['root'], '/'),
         $threadId,
-        rawurlencode($accessToken)
+        rawurlencode($accessToken),
+        !empty($extraParams) ? '&' . $extraParams : ''
     )));
     extract($curl);
 

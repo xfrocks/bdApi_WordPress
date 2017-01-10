@@ -141,7 +141,7 @@ class XFAC_Widget_Threads extends WP_Widget
             }
             $extraParams = http_build_query($extraParams);
 
-            $results = xfac_api_getThreadsInForums($config, $forumId, '', $extraParams);
+            $results = xfac_api_getThreadsInForums($config, $forumId, $extraParams);
 
             if (!empty($results['threads'])) {
                 $threads = $results['threads'];
