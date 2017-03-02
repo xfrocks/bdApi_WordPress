@@ -15,6 +15,15 @@ You can find [howto](https://xfrocks.com/api-support/threads/177/), [FAQ](https:
 
 ## Changelog
 
+### 1.3.4
+
+* Added manual sync for WordPress post while editing
+* Added option to sync user on new XenForo registration
+* Improved user sync
+* Improved comment sync
+* Improved XenForo forum list (respect display order)
+* Improved performance
+
 ### 1.3.3
 
 * Added support for post & comment search indexing
