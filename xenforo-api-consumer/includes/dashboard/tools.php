@@ -27,11 +27,11 @@ function xfac_tool_box()
     <div class="card">
         <h3 class="title"><?php _e('Auto associate with XenForo', 'xenforo-api-consumer') ?></h3>
         <p><?php _e('Run this tool if you want to go through all WordPress accounts '
-            . 'and make sure each of them is associated to a XenForo account. '
-            . 'Please note that associating accounts without user consent '
-            . 'should not be taken lightly. It\'s recommended to only '
-            . 'do this once (right after installing the bridge).'
-            , 'xenforo-api-consumer'); ?></p>
+                . 'and make sure each of them is associated to a XenForo account. '
+                . 'Please note that associating accounts without user consent '
+                . 'should not be taken lightly. It\'s recommended to only '
+                . 'do this once (right after installing the bridge).'
+                , 'xenforo-api-consumer'); ?></p>
 
         <form action="<?php echo admin_url('tools.php'); ?>">
             <input type="hidden" name="action" value="xfac_tools_connect"/>
@@ -57,7 +57,7 @@ function xfac_tool_box()
             </p>
         </form>
     </div>
-<?php
+    <?php
 }
 
 add_action('tool_box', 'xfac_tool_box');
@@ -321,3 +321,54 @@ function xfac_tools_search_index()
 }
 
 add_action('admin_action_xfac_tools_search_index', 'xfac_tools_search_index');
+
+function xfac_tools_sync()
+{
+    $config = xfac_option_getConfig();
+    if (empty($config)) {
+        wp_die(__('XenForo API configuration is missing.', 'xenforo-api-consumer'));
+    }
+
+    $optionFilters = array(
+        'type' => array('filter' => FILTER_DEFAULT, 'default' => ''),
+        'sync_id' => array('filter' => FILTER_VALIDATE_INT, 'default' => 0),
+        'page_no' => array('filter' => FILTER_VALIDATE_INT, 'default' => 1),
+    );
+    $options = array();
+    foreach ($optionFilters as $optionKey => $optionFilter) {
+        $optionValue = filter_input(INPUT_GET, $optionKey, $optionFilter['filter']);
+
+        if (!empty($optionValue)) {
+            $options[$optionKey] = $optionValue;
+        } else {
+            $options[$optionKey] = $optionFilter['default'];
+        }
+    }
+
+    if ($options['type'] !== 'thread') {
+        wp_die(__('Unsupported `type`.', 'xenforo-api-consumer'));
+    }
+
+    $records = xfac_sync_getRecordsByProviderTypeAndSyncId('', $options['type'], $options['sync_id']);
+    if (empty($records)) {
+        wp_die(__('Invalid `sync_id`.', 'xenforo-api-consumer'));
+    }
+    $postSyncRecord = reset($records);
+
+    $done = xfac_syncComment_processPostSyncRecordManual($config, $postSyncRecord, $options);
+    if ($done) {
+        die(__('Done.', 'xenforo-api-consumer'));
+    }
+
+    $optionsStr = '';
+    foreach ($options as $optionKey => $optionValue) {
+        if ($optionValue !== $optionFilters[$optionKey]['default']) {
+            $optionsStr .= sprintf('&%s=%s', $optionKey, rawurlencode($optionValue));
+        }
+    }
+    die(sprintf('<script>window.location = "%s";</script>',
+        admin_url(sprintf('tools.php?action=xfac_tools_sync%s', $optionsStr))
+    ));
+}
+
+add_action('admin_action_xfac_tools_sync', 'xfac_tools_sync');

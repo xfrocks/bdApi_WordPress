@@ -109,13 +109,18 @@ function xfac_sync_getRecordsByProviderTypeAndRecent($provider, $cType, $recentT
 
     global $wpdb;
 
+    $cutOff = 0;
+    if ($recentThreshold > 0) {
+        $cutOff = time() - $recentThreshold;
+    }
+
     $records = $wpdb->get_results($wpdb->prepare("
 		SELECT *
 		FROM {$wpdb->prefix}xfac_sync
 		WHERE provider = %s
 			AND provider_content_type = %s
 			AND sync_date > %d
-	", $provider, $cType, time() - $recentThreshold));
+	", $provider, $cType, $cutOff));
 
     _xfac_sync_prepareRecords($records);
 

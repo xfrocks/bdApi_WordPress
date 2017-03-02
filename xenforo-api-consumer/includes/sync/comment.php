@@ -99,15 +99,21 @@ function xfac_syncComment_pushComment($wpComment, $postSyncRecord, $commentSyncR
     }
 
     $commentContent = $wpComment->comment_content;
-    if (empty($commentSyncRecord)) {
-        $xfPost = xfac_api_postPost($config, $accessToken, $postSyncRecord->provider_content_id, $commentContent, $extraParams);
-        xfac_log('xfac_syncComment_pushComment pushed $wpComment (#%d)', $wpComment->comment_ID);
-    } elseif ($wpComment->comment_approved) {
-        $xfPost = xfac_api_putPost($config, $accessToken, $commentSyncRecord->provider_content_id, $commentContent, $extraParams);
-        xfac_log('xfac_syncComment_pushComment pushed $wpComment (#%d) as an update', $wpComment->comment_ID);
+    $xfPost = null;
+
+    if ($wpComment->comment_approved === '1') {
+        if (empty($commentSyncRecord)) {
+            $xfPost = xfac_api_postPost($config, $accessToken, $postSyncRecord->provider_content_id, $commentContent, $extraParams);
+            xfac_log('xfac_syncComment_pushComment pushed $wpComment (#%d)', $wpComment->comment_ID);
+        } elseif ($wpComment->comment_approved === '1') {
+            $xfPost = xfac_api_putPost($config, $accessToken, $commentSyncRecord->provider_content_id, $commentContent, $extraParams);
+            xfac_log('xfac_syncComment_pushComment pushed $wpComment (#%d) as an update', $wpComment->comment_ID);
+        }
     } else {
-        $xfPost = xfac_api_deletePost($config, $accessToken, $commentSyncRecord->provider_content_id);
-        xfac_log('xfac_syncComment_pushComment pushed $wpComment (#%d) as a delete', $wpComment->comment_ID);
+        if (!empty($commentSyncRecord)) {
+            $xfPost = xfac_api_deletePost($config, $accessToken, $commentSyncRecord->provider_content_id);
+            xfac_log('xfac_syncComment_pushComment pushed $wpComment (#%d) as a delete', $wpComment->comment_ID);
+        }
     }
 
     if (!empty($xfPost['post']['post_id'])) {
@@ -228,6 +234,31 @@ function xfac_syncComment_processPostSyncRecord($config, $postSyncRecord)
     }
 
     return $pulledSomething;
+}
+
+function xfac_syncComment_processPostSyncRecordManual($config, $postSyncRecord, array &$options)
+{
+    $wpUserData = xfac_user_getUserDataByApiData($config['root'], $postSyncRecord->syncData['thread']['creator_user_id']);
+    $accessToken = xfac_user_getAccessToken($wpUserData->ID);
+
+    $xfPosts = xfac_api_getPostsInThread($config, $postSyncRecord->provider_content_id,
+        $accessToken, sprintf('page=%d', $options['page_no']));
+    if (empty($xfPosts['posts'])) {
+        return true;
+    }
+
+    $pulledSomething = xfac_syncComment_processPosts($config, $xfPosts['posts'], $postSyncRecord->sync_id);
+    if ($pulledSomething) {
+        xfac_sync_updateRecordDate($postSyncRecord);
+    }
+
+    if (empty($xfPosts['links']['next'])) {
+        return true;
+    }
+
+    $options['page_no']++;
+
+    return false;
 }
 
 function xfac_syncComment_processPosts($config, array $posts, $wpPostId)

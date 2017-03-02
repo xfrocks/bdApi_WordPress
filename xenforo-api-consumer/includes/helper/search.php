@@ -36,7 +36,7 @@ function xfac_search_indexComment($config, $commentId, $latestSyncDate = 0)
 {
     $comment = get_comment($commentId);
 
-    if (empty($comment->comment_approved)) {
+    if ($comment->comment_approved !== '1') {
         return false;
     }
 

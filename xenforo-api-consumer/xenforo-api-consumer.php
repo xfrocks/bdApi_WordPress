@@ -80,6 +80,7 @@ require_once(dirname(__FILE__) . '/includes/helper/user.php');
 
 if (is_admin()) {
     require_once(dirname(__FILE__) . '/includes/dashboard/options.php');
+    require_once(dirname(__FILE__) . '/includes/dashboard/post.php');
     require_once(dirname(__FILE__) . '/includes/dashboard/profile.php');
     require_once(dirname(__FILE__) . '/includes/dashboard/tools.php');
 } else {
