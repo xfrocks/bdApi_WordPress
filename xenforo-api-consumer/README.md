@@ -15,6 +15,10 @@ You can find [howto](https://xfrocks.com/api-support/threads/177/), [FAQ](https:
 
 ## Changelog
 
+### 1.3.5
+
+* Fix bug meta box missing for new post
+
 ### 1.3.4
 
 * Added manual sync for WordPress post while editing

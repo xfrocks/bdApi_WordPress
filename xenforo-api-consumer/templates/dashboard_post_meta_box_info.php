@@ -1,8 +1,8 @@
-<?php if (!empty($records)): ?>
-    <div>
-        <ul>
-            <?php $existingForumIds = array(); ?>
+<div>
+    <ul>
+        <?php $existingForumIds = array(); ?>
 
+        <?php if (!empty($records)): ?>
             <?php foreach ($records as $record): ?>
                 <li>
                     <?php if (!empty($record->syncData['direction'])
@@ -62,24 +62,24 @@
                     </ul>
                 </li>
             <?php endforeach; ?>
+        <?php endif; ?>
 
-            <?php if (!empty($meta['forums'])): ?>
-                <li>
-                    <label for="xfac_forum_id"><?php _e('Push to forum:', 'xenforo-api-consumer'); ?></label>
+        <?php if (!empty($meta['forums'])): ?>
+            <li>
+                <label for="xfac_forum_id"><?php _e('Push to forum:', 'xenforo-api-consumer'); ?></label>
 
-                    <select name="xfac_forum_id" id="xfac_forum_id">
-                        <option value="0"></option>
-                        <?php foreach ($meta['forums'] as $forum): ?>
-                            <?php $disabled = in_array($forum['forum_id'], $existingForumIds); ?>
-                            <option value="<?php echo $forum['forum_id']; ?>"<?php if ($disabled) {
-                                echo ' disabled="disabled"';
-                            } ?>>
-                                <?php echo $forum['forum_title']; ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </li>
-            <?php endif; ?>
-        </ul>
-    </div>
-<?php endif; ?>
+                <select name="xfac_forum_id" id="xfac_forum_id">
+                    <option value="0"></option>
+                    <?php foreach ($meta['forums'] as $forum): ?>
+                        <?php $disabled = in_array($forum['forum_id'], $existingForumIds); ?>
+                        <option value="<?php echo $forum['forum_id']; ?>"<?php if ($disabled) {
+                            echo ' disabled="disabled"';
+                        } ?>>
+                            <?php echo $forum['forum_title']; ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </li>
+        <?php endif; ?>
+    </ul>
+</div>
