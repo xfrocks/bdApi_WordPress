@@ -7,7 +7,7 @@ if (!defined('ABSPATH')) {
 
 ?>
 
-<h3><?php _e('Connected Account', 'xenforo-api-consumer'); ?></h3>
+<h3><?php _e('Connected XenForo Account', 'xenforo-api-consumer'); ?></h3>
 
 <table class="form-table">
 

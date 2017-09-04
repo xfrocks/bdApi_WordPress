@@ -149,7 +149,7 @@ function xfac_user_getSystemAccessToken($config, $generateOneTimeToken = false, 
                     admin_url('options-general.php?page=xfac')
                 ),
                 'manage_options',
-                __('XenForo Admin Account connection is interrupted. Please notify the staff.', 'xenforo-api-consumer')
+                __('XenForo Guest Account connection is interrupted. Please notify the staff.', 'xenforo-api-consumer')
             );
         }
     }
