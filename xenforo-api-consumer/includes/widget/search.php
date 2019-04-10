@@ -75,4 +75,4 @@ class XFAC_Widget_Search extends WP_Widget
 
 }
 
-add_action('widgets_init', create_function('', 'return register_widget("XFAC_Widget_Search");'));
+add_action('widgets_init', function () { return register_widget("XFAC_Widget_Search"); });
