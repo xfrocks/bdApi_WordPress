@@ -157,7 +157,7 @@ if (!!get_option('xfac_sync_login')) {
     add_action('ws_plugin__s2member_after_remove_login_redirect_filters', 'xfac_login_redirect_add_filter');
 
     // WooCommerce support
-    add_filter('woocommerce_login_redirect', 'xfac_login_login_redirect_memberpress', 10, 2);
+    add_filter('woocommerce_login_redirect', 'xfac_login_redirect_two_params', 10, 2);
 
     add_filter('allowed_redirect_hosts', 'xfac_allowed_redirect_hosts');
     add_action('wp_logout', 'xfac_wp_logout');
