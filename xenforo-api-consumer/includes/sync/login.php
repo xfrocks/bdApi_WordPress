@@ -443,7 +443,7 @@ if (!!get_option('xfac_sync_login')) {
     add_action('profile_update', 'xfac_profile_update');
 }
 
-function xfac_set_user_role($wpUserId, $newRole, $oldRoles)
+function xfac_set_user_role($wpUserId)
 {
     if (!empty($GLOBALS['XFAC_SKIP_xfac_set_user_role'])) {
         return;
@@ -467,7 +467,8 @@ function xfac_set_user_role($wpUserId, $newRole, $oldRoles)
 }
 
 if (!!get_option('xfac_sync_role_wp_xf')) {
-    add_action('set_user_role', 'xfac_set_user_role', 10, 3);
+    add_action('add_user_role', 'xfac_set_user_role', 10, 1);
+    add_action('set_user_role', 'xfac_set_user_role', 10, 1);
 }
 
 function xfac_syncLogin_syncRole($config, WP_User $wpUser, array $xfUser, $xfToWp = true)
