@@ -44,6 +44,17 @@ function xfac_login_pmpro_confirmation_url($redirectTo, $wpUserId, $level)
     return $redirectTo;
 }
 
+function xfac_login_woocommerce_get_checkout_order_received_url($orderReceivedUrl, $order)
+{
+    global $current_user;
+
+    if (!empty($current_user) && $current_user->ID > 0 && $current_user->ID == $order->get_user_id()) {
+        $orderReceivedUrl = xfac_login_redirect($orderReceivedUrl, $orderReceivedUrl, $current_user);
+    }
+
+    return $orderReceivedUrl;
+}
+
 function xfac_allowed_redirect_hosts($hosts)
 {
     $config = xfac_option_getConfig();
@@ -158,6 +169,7 @@ if (!!get_option('xfac_sync_login')) {
 
     // WooCommerce support
     add_filter('woocommerce_login_redirect', 'xfac_login_redirect_two_params', 10, 2);
+    add_filter('woocommerce_get_checkout_order_received_url', 'xfac_login_woocommerce_get_checkout_order_received_url', 10, 2);
 
     add_filter('allowed_redirect_hosts', 'xfac_allowed_redirect_hosts');
     add_action('wp_logout', 'xfac_wp_logout');
@@ -290,7 +302,8 @@ if (!!get_option('xfac_sync_user_wp_xf')) {
     add_filter('authenticate', 'xfac_authenticate_syncUserWpXf', PHP_INT_MAX - 1, 3);
 }
 
-function xfac_user_register($wpUserId) {
+function xfac_user_register($wpUserId)
+{
     if (!empty($GLOBALS['XFAC_SKIP_xfac_user_register'])) {
         return;
     }
