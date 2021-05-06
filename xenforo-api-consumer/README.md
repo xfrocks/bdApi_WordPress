@@ -15,6 +15,13 @@ You can find [howto](https://xfrocks.com/api-support/threads/177/), [FAQ](https:
 
 ## Changelog
 
+### 1.3.6
+
+* Add support for `add_user_role`
+* Improve support for WooCommerce
+* Fix create_function deprecation
+* Fix bug: not working with lowercase HTTP header key
+
 ### 1.3.5
 
 * Fix bug meta box missing for new post
