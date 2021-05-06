@@ -897,7 +897,7 @@ function _xfac_api_getHeader($curl, $headerName)
 
     if (!empty($curl['headers'])) {
         foreach ($curl['headers'] as $headerLine) {
-            if (preg_match('/^' . preg_quote($headerName, '/') . ': (?<value>.+)$/', $headerLine, $matches)) {
+            if (preg_match('/^' . preg_quote($headerName, '/') . ': (?<value>.+)$/i', $headerLine, $matches)) {
                 $headerValues[] = $matches['value'];
             }
         }
